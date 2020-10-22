@@ -1,0 +1,9 @@
+aiohttp>=3.0
+xmltodict>=0.12.0
+
+# Development dependencies
+copyright==1.0.1.0
+twine==1.13.0
+m2r==0.2.1
+flake8==3.8.4
+pytest==6.1.1

@@ -1,0 +1,11 @@
+{
+    "author": "Dmitry Berezovsky",
+    "back": false,
+    "exclude": "",
+    "include": "*.py",
+    "license": "mit",
+    "program": "HomeAssistant-Hikvision Connector",
+    "short": "hass-hikvision-connector",
+    "single": true,
+    "year": "2020"
+}
