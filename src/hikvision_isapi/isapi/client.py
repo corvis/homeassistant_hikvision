@@ -107,7 +107,7 @@ class ISAPIClient(object):
                     break
                 except (TimeoutError, Exception) as e:
                     retry_delay = self._retry_interval
-                    self._retry_interval * self.RETRY_INTERVAL_MULTIPLIER
+                    self._retry_interval = self._retry_interval * self.RETRY_INTERVAL_MULTIPLIER
                     retry_notice = 'Reconnecting in {} seconds'.format(retry_delay.total_seconds())
                     if isinstance(e, TimeoutError):
                         LOGGER.warning("Timeout while reading data from hikvision alert stream. " + retry_notice)
