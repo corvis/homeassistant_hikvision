@@ -1,0 +1,12 @@
+{
+  "domain": "hikvision_isapi",
+  "name": "Integrate Hikvision devices via ISAPI",
+  "documentation": "",
+  "dependencies": [],
+  "codeowners": [
+    "@corvis"
+  ],
+  "requirements": [
+    "xmltodict>=0.12.0"
+  ]
+}
