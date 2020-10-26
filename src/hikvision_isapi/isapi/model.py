@@ -22,14 +22,16 @@
 #    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 from datetime import datetime
-from typing import Any
+from typing import Any, Union
 
 import xmltodict
 
 
 class BaseHikvisionEntity(object):
     XML_ROOT_ELEMENT: str = None
+    XML_ROOT_LIST_ELEMENT: str = None
     XML_PARSE_ATTRS = False
+    TO_STRING_FIELDS = tuple()
 
     def __init__(self) -> None:
         self._xmldict = {}
@@ -41,17 +43,112 @@ class BaseHikvisionEntity(object):
         self._xmldict[field] = value
 
     @classmethod
-    def from_xml_str(cls, xml_str: str):
+    def from_xml_str(cls, xml_str: Union[str, bytes], resolve_root_array=True):
         parsed = xmltodict.parse(xml_str, xml_attribs=cls.XML_PARSE_ATTRS)
+        if cls.XML_ROOT_LIST_ELEMENT and cls.XML_ROOT_LIST_ELEMENT in parsed:
+            parsed = parsed.get(cls.XML_ROOT_LIST_ELEMENT)
         if cls.XML_ROOT_ELEMENT:
             parsed = parsed.get(cls.XML_ROOT_ELEMENT)
-        return cls.from_xml_dict(parsed)
+        if isinstance(parsed, list):
+            return [cls.from_xml_dict(x) for x in parsed]
+        else:
+            return cls.from_xml_dict(parsed)
 
     @classmethod
     def from_xml_dict(cls, xml_dict: dict):
         result = cls()
         result._xmldict = xml_dict
         return result
+
+    def __repr__(self):
+        if len(self.TO_STRING_FIELDS) == 0:
+            props = 'obj=' + hex(id(self))
+        else:
+            props = ', '.join(['{}={}'.format(f, self._from_field(f)) for f in self.TO_STRING_FIELDS])
+        return '{}({})'.format(self.__class__.__name__, props)
+
+
+class DeviceInfo(BaseHikvisionEntity):
+    XML_ROOT_ELEMENT = 'DeviceInfo'
+
+    DEVICE_TYPE_NVR = 'NVR'
+
+    FIELD_DEVICE_NAME = ''
+    FIELD_DEVICE_ID = ''
+    FIELD_MODEL = ''
+    FIELD_SERIAL_NUMBER = ''
+    FIELD_FIRMWARE_VERSION = ''
+    FIELD_FIRMWARE_RELEASE_DATE = ''
+    FIELD_DEVICE_TYPE = ''
+
+    @property
+    def device_name(self) -> str:
+        return self._from_field(self.FIELD_DEVICE_NAME)
+
+    @device_name.setter
+    def device_name(self, value: str):
+        self._to_field(self.FIELD_DEVICE_NAME, value)
+
+    @property
+    def device_id(self) -> str:
+        return self._from_field(self.FIELD_DEVICE_ID)
+
+    @device_id.setter
+    def device_id(self, value: str):
+        self._to_field(self.FIELD_DEVICE_ID, value)
+
+    @property
+    def model(self) -> str:
+        return self._from_field(self.FIELD_MODEL)
+
+    @model.setter
+    def model(self, value: str):
+        self._to_field(self.FIELD_MODEL, value)
+
+    @property
+    def serial_number(self) -> str:
+        return self._from_field(self.FIELD_SERIAL_NUMBER)
+
+    @serial_number.setter
+    def serial_number(self, value: str):
+        self._to_field(self.FIELD_SERIAL_NUMBER, value)
+
+    @property
+    def device_type(self) -> str:
+        return self._from_field(self.FIELD_DEVICE_TYPE)
+
+    @device_type.setter
+    def device_type(self, value: str):
+        self._to_field(self.FIELD_DEVICE_TYPE, value)
+
+    def is_nvr(self) -> bool:
+        return self.device_type == self.DEVICE_TYPE_NVR
+
+
+class InputChannel(BaseHikvisionEntity):
+    XML_ROOT_LIST_ELEMENT = 'InputProxyChannelList'
+    XML_ROOT_ELEMENT = 'InputProxyChannel'
+
+    FIELD_ID = 'id'
+    FIELD_NAME = 'name'
+
+    TO_STRING_FIELDS = (FIELD_ID, FIELD_NAME)
+
+    @property
+    def input_id(self) -> str:
+        return self._from_field(self.FIELD_ID)
+
+    @input_id.setter
+    def input_id(self, value: str):
+        self._to_field(self.FIELD_ID, value)
+
+    @property
+    def input_name(self) -> str:
+        return self._from_field(self.FIELD_NAME)
+
+    @input_name.setter
+    def input_name(self, value: str):
+        self._to_field(self.FIELD_NAME, value)
 
 
 class EventNotificationAlert(BaseHikvisionEntity):

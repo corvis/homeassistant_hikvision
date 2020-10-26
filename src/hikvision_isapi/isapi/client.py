@@ -25,14 +25,18 @@ import asyncio
 import datetime
 import logging
 from asyncio import CancelledError
+from typing import List
 
 import aiohttp
 
-from .model import EventNotificationAlert
+from .model import EventNotificationAlert, DeviceInfo, InputChannel
 
 LOGGER = logging.getLogger('Hikvision_ISAPIClient')
 
 ENDPOINT_EVENT_ALERTS_STREAM = '/ISAPI/Event/notification/alertStream'
+# ENDPOINT_INPUTS_LIST = '/ISAPI/Streaming/channels'
+ENDPOINT_INPUTS_LIST = '/ISAPI/ContentMgmt/InputProxy/channels'
+ENDPOINT_DEVICE_INFO = '/ISAPI/System/deviceInfo'
 
 __all__ = ['ISAPIClient']
 
@@ -83,34 +87,53 @@ class ISAPIClient(object):
             self._session = new_session
         return new_session
 
+    async def close(self):
+        try:
+            if self._infinite_session is not None and not self._infinite_session.closed:
+                await self._infinite_session.close()
+        except:
+            pass
+        try:
+            if self._session is not None and not self._session.closed:
+                await self._session.close()
+        except:
+            pass
+
     def __build_url(self, path: str) -> str:
         return self.base_url + path
 
+    async def get_device_info(self) -> DeviceInfo:
+        async with self.__get_session().get(self.__build_url(ENDPOINT_DEVICE_INFO)) as response:
+            return DeviceInfo.from_xml_str(await response.read())
+
+    async def get_available_inputs(self) -> List[InputChannel]:
+        async with self.__get_session().get(self.__build_url(ENDPOINT_INPUTS_LIST)) as response:
+            return InputChannel.from_xml_str(await response.read())
+
     async def listen_hikvision_event_stream(self, queue: asyncio.Queue):
-        async with self.__get_session(infinite=True) as client:
-            while True:
-                try:
-                    async with client.get(self.__build_url(ENDPOINT_EVENT_ALERTS_STREAM)) as response:
-                        self._retry_interval = self.INITIAL_RETRY_INTERVAL
-                        reader = aiohttp.MultipartReader.from_response(response)
-                        reader.stream.part_reader_cls = HikhisionStreamPartReader
-                        while True:
-                            part = await reader.next()
-                            if part is None:
-                                break
-                            filedata = await part.read(decode=False)
-                            if filedata:
-                                event = EventNotificationAlert.from_xml_str(filedata)
-                                queue.put_nowait(event)
-                except CancelledError:
-                    LOGGER.info("Gracefully terminating alert stream listener")
-                    break
-                except (TimeoutError, Exception) as e:
-                    retry_delay = self._retry_interval
-                    self._retry_interval = self._retry_interval * self.RETRY_INTERVAL_MULTIPLIER
-                    retry_notice = 'Reconnecting in {} seconds'.format(retry_delay.total_seconds())
-                    if isinstance(e, TimeoutError):
-                        LOGGER.warning("Timeout while reading data from hikvision alert stream. " + retry_notice)
-                    else:
-                        LOGGER.exception('Unknown error while reading event stream. ' + retry_notice)
-                    await asyncio.sleep(retry_delay.total_seconds())
+        while True:
+            try:
+                async with self.__get_session().get(self.__build_url(ENDPOINT_EVENT_ALERTS_STREAM)) as response:
+                    self._retry_interval = self.INITIAL_RETRY_INTERVAL
+                    reader = aiohttp.MultipartReader.from_response(response)
+                    reader.stream.part_reader_cls = HikhisionStreamPartReader
+                    while True:
+                        part = await reader.next()
+                        if part is None:
+                            break
+                        filedata = await part.read(decode=False)
+                        if filedata:
+                            event = EventNotificationAlert.from_xml_str(filedata)
+                            queue.put_nowait(event)
+            except CancelledError:
+                LOGGER.info("Gracefully terminating alert stream listener")
+                break
+            except (TimeoutError, Exception) as e:
+                retry_delay = self._retry_interval
+                self._retry_interval = self._retry_interval * self.RETRY_INTERVAL_MULTIPLIER
+                retry_notice = 'Reconnecting in {} seconds'.format(retry_delay.total_seconds())
+                if isinstance(e, TimeoutError):
+                    LOGGER.warning("Timeout while reading data from hikvision alert stream. " + retry_notice)
+                else:
+                    LOGGER.exception('Unknown error while reading event stream. ' + retry_notice)
+                await asyncio.sleep(retry_delay.total_seconds())
