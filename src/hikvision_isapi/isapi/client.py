@@ -65,14 +65,21 @@ class ISAPIClient(object):
     INITIAL_RETRY_INTERVAL = datetime.timedelta(seconds=3)
     RETRY_INTERVAL_MULTIPLIER = 2
 
-    def __init__(self, base_url: str, username: str, password: str) -> None:
+    def __init__(self, base_url: str, username: str, password: str, ignore_ssl_errors = False) -> None:
         self.base_url = base_url
         self.auth = None
         if username is not None or password is not None:
             self.auth = aiohttp.BasicAuth(username, password)
+        self.ignore_ssl_errors = ignore_ssl_errors
         self._infinite_session: aiohttp.ClientSession = None
         self._session: aiohttp.ClientSession = None
         self._retry_interval = self.INITIAL_RETRY_INTERVAL
+
+    async def __aenter__(self) -> 'ISAPIClient':
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        await self.close()
 
     def __get_session(self, infinite=True) -> aiohttp.ClientSession:
         if infinite and self._infinite_session:
@@ -80,7 +87,10 @@ class ISAPIClient(object):
         elif not infinite and self._session:
             return self._session
         timeout = aiohttp.ClientTimeout(total=None) if infinite else None
-        new_session = aiohttp.ClientSession(auth=self.auth, timeout=timeout)
+        connector = None
+        if self.ignore_ssl_errors:
+            connector = aiohttp.TCPConnector(verify_ssl=False)
+        new_session = aiohttp.ClientSession(auth=self.auth, timeout=timeout, connector=connector)
         if infinite:
             self._infinite_session = new_session
         else:

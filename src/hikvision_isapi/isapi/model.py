@@ -73,13 +73,13 @@ class DeviceInfo(BaseHikvisionEntity):
 
     DEVICE_TYPE_NVR = 'NVR'
 
-    FIELD_DEVICE_NAME = ''
-    FIELD_DEVICE_ID = ''
-    FIELD_MODEL = ''
-    FIELD_SERIAL_NUMBER = ''
-    FIELD_FIRMWARE_VERSION = ''
-    FIELD_FIRMWARE_RELEASE_DATE = ''
-    FIELD_DEVICE_TYPE = ''
+    FIELD_DEVICE_NAME = 'deviceName'
+    FIELD_DEVICE_ID = 'deviceID'
+    FIELD_MODEL = 'model'
+    FIELD_SERIAL_NUMBER = 'serialNumber'
+    FIELD_FIRMWARE_VERSION = 'firmwareVersion'
+    FIELD_FIRMWARE_RELEASE_DATE = 'firmwareReleaseDate'
+    FIELD_DEVICE_TYPE = 'deviceType'
 
     @property
     def device_name(self) -> str:

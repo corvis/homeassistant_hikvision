@@ -28,6 +28,36 @@ DATA_HAS_SUBSCRIBERS = 'has_subscribers'
 DATA_ALERT_CONFIGS = 'alert_configs'
 DATA_BG_TASKS = 'bg_tasks'
 
+CONF_BASE_URL = 'base_url'
+CONF_USER = 'username'
+CONF_PASSWORD = 'password'
+CONF_IGNORE_SSL_ERRORS = 'ignore_ssl_errors'
+CONF_DEVICE_TYPE = 'device_type'
+
+DEVICE_TYPE_NVR = 'NVR'
+
+EDIT_COMMON_SETTINGS = 'common'
+EDIT_INPUT_PREFIX = 'input_settings'
+
+OPT_EDIT_KEY = 'edit_key'
+OPT_ROOT_COMMON = 'common'
+OPT_ROOT_ALERTS = 'alerts'
+
+OPT_COMMON_DEFAULT_RECOVERY_PERIOD = 'default_recovery_period'
+OPT_COMMON_ALERT_INPUTS = 'alert_inputs'
+
+OPT_ALERTS_ALERT_TYPES = 'alert_types'
+OPT_ALERTS_ENABLE_TRACKING = 'enable_tracking'
+
+ALERT_TYPES_MAP = {
+    'videoloss': 'Video Loss',
+    'fielddetection': 'Intrusion',
+    'linedetection': 'Cross Line',
+}
+
+CONTEXT_ALERT_CONFIG_KEY = 'selected_alert_chanel'
+
+# LEGACY
 
 DISCOVERY_DEVICE_NAME = 'device_name'
 DISCOVERY_SENSOR_ID = 'sensor_id'
@@ -36,10 +66,6 @@ DISCOVERY_CHANNEL_CFG = 'channel_cfg'
 DISCOVERY_ALERT_CFG_ID = 'alert_cfg_id'
 DISCOVERY_EVENT_STREAM = 'queue'
 
-CONF_BASE_URL = 'base_url'
-CONF_USER = 'username'
-CONF_PASSWORD = 'password'
-CONF_ALERTS = 'alerts'
 CONF_CHANNELS = 'channels'
 CONF_DEFAULT_RECOVERY_PERIOD = 'default_recovery_period'
 
