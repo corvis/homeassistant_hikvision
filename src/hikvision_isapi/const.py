@@ -61,6 +61,11 @@ OPT_ALERTS_ALERT_TYPES = 'alert_types'
 OPT_ALERTS_ENABLE_TRACKING = 'enable_tracking'
 
 
+DEFAULTS_COMMON_DEFAULT_RECOVERY_PERIOD = '00:01:00'
+
+NON_NVR_CHANNEL_NUMBER = '1'
+
+
 class AlertType(enum.Enum):
     LineCrossing = 'linedetection'
     Intrusion = 'fielddetection'

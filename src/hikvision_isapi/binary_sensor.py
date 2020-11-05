@@ -33,7 +33,7 @@ from homeassistant.core import HomeAssistant, Event
 from homeassistant.helpers.dispatcher import async_dispatcher_send, async_dispatcher_connect
 from homeassistant.helpers.event import async_track_time_interval
 
-from . import const
+from . import const, utils
 from .isapi.client import ISAPIClient
 from .isapi.model import EventNotificationAlert
 
@@ -43,7 +43,6 @@ _LOGGER = logging.getLogger(__name__)
 class AlertDef(NamedTuple):
     related_device_id: str
     type: const.AlertType
-    name: str
     channel: str
     recovery_period: datetime.timedelta
 
@@ -77,7 +76,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, asyn
                     input.input_name
                 )
         else:
-            inputs_map['1'] = (None, None)
+            inputs_map[const.NON_NVR_CHANNEL_NUMBER] = (None, None)
 
         for alert in alerts_cfg:
             if alert.channel not in inputs_map:
@@ -100,17 +99,19 @@ async def start_isapi_alert_listeners(hass, data: Dict, config_entry: ConfigEntr
 
     # Build a list of AlertDefs
     alerts_cfg = []
+    common_options = config_entry.options.get(const.OPT_ROOT_COMMON)
     if config_entry.data.get(const.CONF_DEVICE_TYPE) == const.DEVICE_TYPE_NVR:
         for chanel_name, channel_config in options.items():
             if chanel_name.startswith(const.OPT_ROOT_ALERTS) and len(chanel_name) > len(const.OPT_ROOT_ALERTS):
                 channel_num = chanel_name.replace(const.OPT_ROOT_ALERTS, '', 1)
                 if channel_config.get(const.OPT_ALERTS_ENABLE_TRACKING):
-                    alerts_cfg += alertdef_from_channel_options(config_entry.entry_id, channel_config, channel_num)
+                    alerts_cfg += alertdef_from_channel_options(config_entry.entry_id, channel_config,
+                                                                channel_num, common_options)
 
-        pass
     else:
         if options.get(const.OPT_ROOT_ALERTS).get(const.OPT_ALERTS_ENABLE_TRACKING):
-            alerts_cfg += alertdef_from_channel_options(config_entry.entry_id, options.get(const.OPT_ROOT_ALERTS), '1')
+            alerts_cfg += alertdef_from_channel_options(config_entry.entry_id, options.get(const.OPT_ROOT_ALERTS),
+                                                        const.NON_NVR_CHANNEL_NUMBER, common_options)
 
     data[const.DATA_ALERTS_BG_TASKS].append(
         hass.loop.create_task(api_client.listen_hikvision_event_stream(event_stream))
@@ -121,15 +122,17 @@ async def start_isapi_alert_listeners(hass, data: Dict, config_entry: ConfigEntr
     return alerts_cfg
 
 
-def alertdef_from_channel_options(deivce_id: str, config: Dict, channel_num: Optional[str]) -> List[AlertDef]:
+def alertdef_from_channel_options(deivce_id: str, config: Dict,
+                                  channel_num: Optional[str], common_options: Dict) -> List[AlertDef]:
     res = []
+    default_recovery_interval = utils.parse_timedelta_or_default(
+        common_options.get(const.OPT_COMMON_DEFAULT_RECOVERY_PERIOD, ''), datetime.timedelta(minutes=1))
     for alert_type in config.get(const.OPT_ALERTS_ALERT_TYPES):
         res.append(AlertDef(
             related_device_id=deivce_id,
             type=const.AlertType(alert_type),
-            recovery_period=datetime.timedelta(seconds=60),  # TODO: HARDCODE
+            recovery_period=default_recovery_interval,
             channel=channel_num,
-            name=''  # TODO: Do we need this?
         ))
     return res
 
@@ -189,8 +192,10 @@ class HikvisionAlertBinarySensor(BinarySensorEntity):
         self._last_triggered: datetime.datetime = None
         self._recovery_period = alert_def.recovery_period
         # hass.bus.async_listen(const.EVENT_ALERT_NAME, self._on_event_received)
-        self._dispose_signal_dispatcher: Callable = None
-        async_track_time_interval(hass, self._check_if_state_outdated, datetime.timedelta(seconds=20))
+        self._dispose_signal_dispatchers: List[Callable] = []
+        self._dispose_signal_dispatchers.append(
+            async_track_time_interval(hass, self._check_if_state_outdated, datetime.timedelta(seconds=20))
+        )
         _LOGGER.debug("Configured Hikvision Alert sensor {}".format(self.name))
 
     @property
@@ -209,7 +214,7 @@ class HikvisionAlertBinarySensor(BinarySensorEntity):
         if not self._match_event(data):
             return
         self._triggered = True
-        self._last_triggered = data.get(const.EVENT_ALERT_DATA_TIMESTAMP)
+        self._last_triggered = datetime.datetime.fromisoformat(data.get(const.EVENT_ALERT_DATA_TIMESTAMP))
         _LOGGER.debug('Signal received')
         self.async_schedule_update_ha_state(True)
 
@@ -247,11 +252,14 @@ class HikvisionAlertBinarySensor(BinarySensorEntity):
 
     async def async_added_to_hass(self) -> None:
         # Added to hass so need to register to dispatch signals coming from alerts queue.
-        self._dispose_signal_dispatcher = async_dispatcher_connect(self.hass, const.SIGNAL_ALERT_NAME,
-                                                                   self._on_event_received)
+        self._dispose_signal_dispatchers.append(
+            async_dispatcher_connect(self.hass, const.SIGNAL_ALERT_NAME,
+                                     self._handle_alert_signal)
+        )
 
     async def async_will_remove_from_hass(self):
         _LOGGER.debug("Unloading Hikvision Alert sensor {}".format(self.name))
         # Unregister signal dispatch listeners when being removed."""
-        if self._dispose_signal_dispatcher:
-            self._dispose_signal_dispatcher()
+        for disposer in self._dispose_signal_dispatchers:
+            disposer()
+        self._dispose_signal_dispatchers = []

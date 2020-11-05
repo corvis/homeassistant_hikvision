@@ -37,6 +37,7 @@ _LOGGER = logging.getLogger(__name__)
 
 class HikvisionFlowHandler(config_entries.ConfigFlow, domain=const.DOMAIN):
     VERSION = 1
+    CONNECTION_CLASS = config_entries.CONN_CLASS_LOCAL_PUSH
 
     async def async_step_user(self, user_input=None):
 
@@ -132,19 +133,26 @@ class HikvisionOptionsFlowHandler(config_entries.OptionsFlow):
             data_schema=vol.Schema({
                 vol.Required(const.OPT_EDIT_KEY, default=const.EDIT_COMMON_SETTINGS): vol.In(config_pages_dict)
             }),
+            errors=errors
+
         )
 
-    async def async_step_common_settings(self, user_input=None):
+    async def async_step_common_settings(self, user_input: Dict = None):
         current = self.current_options.get(const.OPT_ROOT_COMMON)
-        # errors = {}
+        errors = {}
 
         if user_input is not None:
-            return self.preserve_options_section(const.OPT_ROOT_COMMON, user_input)
+            # Validate input
+            if not utils.parse_timedelta_or_default(user_input.get(const.OPT_COMMON_DEFAULT_RECOVERY_PERIOD), None):
+                errors[const.OPT_COMMON_DEFAULT_RECOVERY_PERIOD] = 'invalid_period'
+            if len(errors.keys()) == 0:
+                return self.preserve_options_section(const.OPT_ROOT_COMMON, user_input)
 
         schema_dict = {
             vol.Optional(
                 const.OPT_COMMON_DEFAULT_RECOVERY_PERIOD,
-                default=current.get(const.OPT_COMMON_DEFAULT_RECOVERY_PERIOD),
+                description={"suggested_value": current.get(const.OPT_COMMON_DEFAULT_RECOVERY_PERIOD)},
+                default=const.DEFAULTS_COMMON_DEFAULT_RECOVERY_PERIOD
             ): str,
         }
 
@@ -167,7 +175,8 @@ class HikvisionOptionsFlowHandler(config_entries.OptionsFlow):
         return self.async_show_form(
             step_id="common_settings",
             data_schema=vol.Schema(schema_dict),
-            description_placeholders={}
+            description_placeholders={},
+            errors=errors
         )
 
     async def async_step_alerts(self, user_input: Dict = None, channel: str = None):

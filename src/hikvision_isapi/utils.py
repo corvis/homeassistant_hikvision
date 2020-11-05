@@ -21,8 +21,12 @@
 #    TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 #    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+import datetime
 import logging
 from typing import Dict
+
+import voluptuous as vol
+from homeassistant.helpers import config_validation as cv
 
 from . import const
 from .isapi.client import ISAPIClient
@@ -40,3 +44,12 @@ def handle_hik_client_error(e: Exception, errors: Dict, logger: logging.Logger):
     # TODO: Implement proper handling, e.g. Unauthorized errors
     errors['base'] = 'unable_to_connect'
     logger.exception('Unable to connect to hikvision device')
+
+
+def parse_timedelta_or_default(input_str: str, default: datetime.timedelta = None) -> datetime.timedelta:
+    if not input_str:
+        return default
+    try:
+        return cv.time_period_str(input_str)
+    except vol.Invalid:
+        return default
