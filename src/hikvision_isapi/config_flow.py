@@ -201,7 +201,7 @@ class HikvisionOptionsFlowHandler(config_entries.OptionsFlow):
                 vol.Optional(
                     const.OPT_ALERTS_ALERT_TYPES,
                     default=current.get(const.OPT_ALERTS_ALERT_TYPES)
-                ): cv.multi_select(const.ALERT_TYPES_MAP),
+                ): cv.multi_select({k.value: v for k, v in const.ALERT_TYPES_MAP.items()}),
             }),
             description_placeholders={}
         )

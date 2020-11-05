@@ -67,18 +67,62 @@ NON_NVR_CHANNEL_NUMBER = '1'
 
 
 class AlertType(enum.Enum):
-    LineCrossing = 'linedetection'
     Intrusion = 'fielddetection'
+    LineCrossing = 'linedetection'
+    Motion = 'vmd'
     VideoLoss = 'videoloss'
+    TamperDetection = 'tamperdetection'
+    ShelterAlarm = 'shelteralarm'
+    Defocus = 'defocus'
+    DiskFull = 'diskfull'
+    DiskError = 'diskerror'
+    NetInterfaceBroken = 'nicbroken'
+    IPConflict = 'ipconflict'
+    IllegalAccess = 'illaccess'
+    VideoMismatch = 'videomismatch'
+    BadVideo = 'badvideo'
+    PIRAlarm = 'pir'
+    FaceDetection = 'facedetection'
+    SceneChangeDetection = 'scenechangedetection'
+    InputOutput = 'io'
+    UnattendedBaggage = 'unattendedbaggage'
+    AttendedBaggage = 'attendedbaggage'
+    RecordingFailure = 'recordingfailure'
+    ExitingRegion = 'regionexiting'
+    EnteringRegion = 'regionentrance'
 
 
 ALERT_STATE_ACTIVE = 'active'
 ALERT_STATE_INACTIVE = 'inactive'
 
 ALERT_TYPES_MAP = {
-    'videoloss': 'Video Loss',
-    'fielddetection': 'Intrusion',
-    'linedetection': 'Cross Line',
+    AlertType.Intrusion: '1: Intrusion',
+    AlertType.LineCrossing: '1: Cross Line',
+    AlertType.Motion: '1: Motion',
+    AlertType.FaceDetection: '1: Face Detection',
+
+    AlertType.InputOutput: '2: Input Output',
+
+    AlertType.VideoLoss: '3: Video Loss',
+    AlertType.Defocus: '3: Defocus',
+    AlertType.DiskFull: '3: DiskFull',
+    AlertType.DiskError: '3: DiskError',
+    AlertType.TamperDetection: '3: Tamper Detection',
+    AlertType.ShelterAlarm: '3: Shelter Alarm',
+    AlertType.IllegalAccess: '3: IllegalAccess',
+    AlertType.BadVideo: '3: BadVideo',
+    AlertType.PIRAlarm: '3: PIRAlarm',
+    AlertType.SceneChangeDetection: '3: Scene Change Detection',
+
+    AlertType.UnattendedBaggage: '9: Unattended Baggage',
+    AlertType.AttendedBaggage: '9: Attended Baggage',
+    AlertType.RecordingFailure: '9: Recording Failure',
+    AlertType.ExitingRegion: '9: Exiting Region',
+    AlertType.EnteringRegion: '9: Entering Region',
+    AlertType.VideoMismatch: '9: Video Mismatch',
+    AlertType.NetInterfaceBroken: '9: Net Interface Broken',
+    AlertType.IPConflict: '9: IP Conflict',
+
 }
 
 CONTEXT_ALERT_CONFIG_KEY = 'selected_alert_chanel'
