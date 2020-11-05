@@ -140,7 +140,7 @@ async def process_hikvision_alerts(hass: HomeAssistant, event_stream: Queue, con
         while True:
             event: EventNotificationAlert = await event_stream.get()
 
-            if event.type == const.AlertType.value and event.state == const.ALERT_STATE_INACTIVE:
+            if event.type == const.AlertType.VideoLoss.value and event.state == const.ALERT_STATE_INACTIVE:
                 continue
 
             # Finding suitable alert
