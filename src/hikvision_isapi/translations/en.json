@@ -1,0 +1,52 @@
+{
+    "config": {
+        "abort": {
+            "single_instance_allowed": "This de"
+        },
+        "error": {
+            "unable_to_connect": "Unable to connect remote device. Check url and credentials"
+        },
+        "create_entry": {
+            "default": "Successfully connected to Hikvision device"
+        },
+        "step": {
+            "user": {
+                "data": {
+                    "base_url": "Base URL",
+                    "username": "User name",
+                    "password": "Password",
+                    "ignore_ssl_errors": "Ignore invalid SSL certificate"
+                },
+                "description": "Enter main configuration options for initial connection. You should edit Options once connection is established to tune integration params",
+                "title": "Connect to Hikvision device"
+            }
+        }
+    },
+    "options": {
+        "step": {
+            "init": {
+                "data": {
+                    "edit_key": "Page"
+                },
+                "description": "Choose settings page to edit",
+                "title": "Hikvision Integration Options"
+            },
+            "common_settings": {
+                "data": {
+                    "default_recovery_period": "Default alert recovery period",
+                    "alert_inputs": "Alert inputs"
+                },
+                "title": "Common Settings",
+                "description": ""
+            },
+            "alerts": {
+                "data": {
+                    "enable_tracking": "Enable tracking",
+                    "alert_types": "Alerts to track"
+                },
+                "title": "Alert Stream Processing",
+                "description": ""
+            }
+        }
+    }
+}

@@ -21,9 +21,20 @@
 #    TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 #    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+import enum
+
 DOMAIN = 'hikvision_isapi'
+PLATFORMS = ('binary_sensor',)
+
 DATA_API_CLIENT = 'api_client'
+UNDO_UPDATE_CONF_UPDATE_LISTENER = 'undo_config_update_listener'
+
+#####
 DATA_EVENT_STREAM = 'event_stream'
+DATA_ALERTS_BG_TASKS = 'alerts_bg_tasks'
+DATA_ALERTS_QUEUE = 'alerts_queue'
+DATA_ENTITIES = 'entities'
+#####
 DATA_HAS_SUBSCRIBERS = 'has_subscribers'
 DATA_ALERT_CONFIGS = 'alert_configs'
 DATA_BG_TASKS = 'bg_tasks'
@@ -49,6 +60,16 @@ OPT_COMMON_ALERT_INPUTS = 'alert_inputs'
 OPT_ALERTS_ALERT_TYPES = 'alert_types'
 OPT_ALERTS_ENABLE_TRACKING = 'enable_tracking'
 
+
+class AlertType(enum.Enum):
+    LineCrossing = 'linedetection'
+    Intrusion = 'fielddetection'
+    VideoLoss = 'videoloss'
+
+
+ALERT_STATE_ACTIVE = 'active'
+ALERT_STATE_INACTIVE = 'inactive'
+
 ALERT_TYPES_MAP = {
     'videoloss': 'Video Loss',
     'fielddetection': 'Intrusion',
@@ -57,26 +78,9 @@ ALERT_TYPES_MAP = {
 
 CONTEXT_ALERT_CONFIG_KEY = 'selected_alert_chanel'
 
-# LEGACY
+SENSOR_ID_PREFIX = 'cam'
 
-DISCOVERY_DEVICE_NAME = 'device_name'
-DISCOVERY_SENSOR_ID = 'sensor_id'
-DISCOVERY_SENSOR_NAME = 'sensor_name'
-DISCOVERY_CHANNEL_CFG = 'channel_cfg'
-DISCOVERY_ALERT_CFG_ID = 'alert_cfg_id'
-DISCOVERY_EVENT_STREAM = 'queue'
-
-CONF_CHANNELS = 'channels'
-CONF_DEFAULT_RECOVERY_PERIOD = 'default_recovery_period'
-
-CONF_ALERT_TYPE = 'type'
-CONF_ALERT_CHANNEL = 'channel'
-CONF_ALERT_NAME = 'name'
-CONF_ALERT_RECOVERY_PERIOD = 'recovery_period'
-
-CONF_CHANNEL_ID = 'id'
-CONF_CHANNEL_ENTITY_ID = 'entity_id'
-CONF_CHANNEL_NAME = 'name'
+SIGNAL_ALERT_NAME = DOMAIN + '_alert'
 
 EVENT_ALERT_NAME = DOMAIN + '_alert'
 EVENT_ALERT_DATA_CHANNEL = 'channel'

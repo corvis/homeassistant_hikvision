@@ -1,6 +1,6 @@
 {
   "domain": "hikvision_isapi",
-  "name": "Integrate Hikvision devices via ISAPI",
+  "name": "Hikvision ISAPI",
   "documentation": "",
   "dependencies": [],
   "codeowners": [

@@ -21,34 +21,161 @@
 #    TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 #    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+import asyncio
 import datetime
 import logging
+from asyncio import Queue
+from typing import Dict, List, NamedTuple, Optional, Callable
 
 from homeassistant.components.binary_sensor import BinarySensorEntity, DEVICE_CLASS_MOTION
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, Event
+from homeassistant.helpers.dispatcher import async_dispatcher_send, async_dispatcher_connect
 from homeassistant.helpers.event import async_track_time_interval
 
-from . import const, AlertDef
+from . import const
+from .isapi.client import ISAPIClient
+from .isapi.model import EventNotificationAlert
 
 _LOGGER = logging.getLogger(__name__)
 
 
-async def async_setup_platform(hass: HomeAssistant, config, async_add_entities, discovery_info=None):
-    if discovery_info is None or const.DISCOVERY_DEVICE_NAME not in discovery_info:
-        _LOGGER.warning("Skipped initialization of the binary sensor as manual initialization is not supported "
-                        "(discovery context is required)")
-        return
+class AlertDef(NamedTuple):
+    related_device_id: str
+    type: const.AlertType
+    name: str
+    channel: str
+    recovery_period: datetime.timedelta
 
-    alert_def = hass.data[const.DOMAIN][discovery_info[const.DISCOVERY_DEVICE_NAME]][const.DATA_ALERT_CONFIGS][
-        discovery_info.get(const.DISCOVERY_ALERT_CFG_ID)]
 
-    async_add_entities([HikvisionAlertBinarySensor(hass,
-                                                   discovery_info.get(const.DISCOVERY_SENSOR_ID),
-                                                   discovery_info.get(const.DISCOVERY_SENSOR_NAME),
-                                                   alert_def
-                                                   )
-                        ])
+def name_to_id(name: str) -> str:
+    return name.strip().replace(' ', '_').replace('-', '_').lower()
+
+
+def should_listen_for_alerts(options: Dict) -> bool:
+    for chanel_name, config in options.items():
+        if chanel_name.startswith(const.OPT_ROOT_ALERTS) and config.get(const.OPT_ALERTS_ENABLE_TRACKING):
+            return True
+    return False
+
+
+async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, async_add_entities):
+    """Set up the platform from config_entry."""
+    # We should scan options for alert configs and then if at least 1 listener is enabled subscribe for the stream
+    hik_client = hass.data[const.DOMAIN][config_entry.entry_id][const.DATA_API_CLIENT]
+    entities = []
+    if should_listen_for_alerts(config_entry.options):
+        alerts_cfg = await start_isapi_alert_listeners(hass, hass.data[const.DOMAIN][config_entry.entry_id],
+                                                       config_entry)
+
+        inputs_map = {}
+        if config_entry.data.get(const.CONF_DEVICE_TYPE) == const.DEVICE_TYPE_NVR:
+            inputs = await hik_client.get_available_inputs()
+            for input in inputs:
+                inputs_map[input.input_id] = (
+                    name_to_id(const.SENSOR_ID_PREFIX + str(input.input_id).rjust(2, '0')),
+                    input.input_name
+                )
+        else:
+            inputs_map['1'] = (None, None)
+
+        for alert in alerts_cfg:
+            if alert.channel not in inputs_map:
+                _LOGGER.warning("Ignoring sensors for channel {} (device {})".format(alert.channel, config_entry.title))
+            input_prefix_id, input_prefix_name = inputs_map.get(alert.channel, (None, None))
+            sensor_id = "_".join(filter(None, (name_to_id(config_entry.title), input_prefix_id, alert.type.value)))
+            sensor_name = " ".join(filter(None, (config_entry.title, input_prefix_name,
+                                                 const.ALERT_TYPES_MAP.get(alert.type.value, alert.type.value))))
+            entities.append(HikvisionAlertBinarySensor(hass, sensor_id, sensor_name, alert))
+    if len(entities) > 0:
+        async_add_entities(entities)
     return True
+
+
+async def start_isapi_alert_listeners(hass, data: Dict, config_entry: ConfigEntry) -> List[AlertDef]:
+    _LOGGER.info("Initializing Hikvision ISAPI alert stream listener")
+    api_client: ISAPIClient = data[const.DATA_API_CLIENT]
+    event_stream = data[const.DATA_ALERTS_QUEUE] = Queue()
+    options: Dict = config_entry.options
+
+    # Build a list of AlertDefs
+    alerts_cfg = []
+    if config_entry.data.get(const.CONF_DEVICE_TYPE) == const.DEVICE_TYPE_NVR:
+        for chanel_name, channel_config in options.items():
+            if chanel_name.startswith(const.OPT_ROOT_ALERTS) and len(chanel_name) > len(const.OPT_ROOT_ALERTS):
+                channel_num = chanel_name.replace(const.OPT_ROOT_ALERTS, '', 1)
+                if channel_config.get(const.OPT_ALERTS_ENABLE_TRACKING):
+                    alerts_cfg += alertdef_from_channel_options(config_entry.entry_id, channel_config, channel_num)
+
+        pass
+    else:
+        if options.get(const.OPT_ROOT_ALERTS).get(const.OPT_ALERTS_ENABLE_TRACKING):
+            alerts_cfg += alertdef_from_channel_options(config_entry.entry_id, options.get(const.OPT_ROOT_ALERTS), '1')
+
+    data[const.DATA_ALERTS_BG_TASKS].append(
+        hass.loop.create_task(api_client.listen_hikvision_event_stream(event_stream))
+    )
+    data[const.DATA_ALERTS_BG_TASKS].append(
+        hass.loop.create_task(process_hikvision_alerts(hass, event_stream, config_entry.entry_id, alerts_cfg))
+    )
+    return alerts_cfg
+
+
+def alertdef_from_channel_options(deivce_id: str, config: Dict, channel_num: Optional[str]) -> List[AlertDef]:
+    res = []
+    for alert_type in config.get(const.OPT_ALERTS_ALERT_TYPES):
+        res.append(AlertDef(
+            related_device_id=deivce_id,
+            type=const.AlertType(alert_type),
+            recovery_period=datetime.timedelta(seconds=60),  # TODO: HARDCODE
+            channel=channel_num,
+            name=''  # TODO: Do we need this?
+        ))
+    return res
+
+
+async def process_hikvision_alerts(hass: HomeAssistant, event_stream: Queue, config_entry_id: str,
+                                   alerts_cfg: List[AlertDef]):
+    try:
+        while True:
+            event: EventNotificationAlert = await event_stream.get()
+
+            if event.type == const.AlertType.value and event.state == const.ALERT_STATE_INACTIVE:
+                continue
+
+            # Finding suitable alert
+            for alert in alerts_cfg:
+                alert_channel = alert.channel
+                if alert_channel is not None:
+                    alert_channel = str(alert_channel)
+                if alert.type.value == event.type and alert_channel == event.channel_id:
+                    _LOGGER.debug(
+                        'CLASSIFIED ALERT: {} \tState: {}, \tChannel: {}/{}, \t Time: {}'.format(event.type,
+                                                                                                 event.state,
+                                                                                                 event.channel_id,
+                                                                                                 event.channel_name,
+                                                                                                 str(event.timestamp)))
+                    async_dispatcher_send(hass, const.SIGNAL_ALERT_NAME, {
+                        const.EVENT_ALERT_DATA_CHANNEL: event.channel_id,
+                        const.EVENT_ALERT_DATA_TYPE: event.type,
+                        const.EVENT_ALERT_DATA_DEVICE: config_entry_id,
+                        const.EVENT_ALERT_DATA_TIMESTAMP: event.timestamp.isoformat(),
+                    })
+                    # hass.bus.async_fire(const.EVENT_ALERT_NAME, {
+                    #     const.EVENT_ALERT_DATA_CHANNEL: event.channel_id,
+                    #     const.EVENT_ALERT_DATA_TYPE: event.type,
+                    #     const.EVENT_ALERT_DATA_DEVICE: config_entry_id,
+                    #     const.EVENT_ALERT_DATA_TIMESTAMP: event.timestamp.isoformat(),
+                    # })
+
+            _LOGGER.debug(
+                'ALERT: {} \tState: {}, \tChannel: {}/{}, \t Time: {}'.format(event.type,
+                                                                              event.state,
+                                                                              event.channel_id,
+                                                                              event.channel_name,
+                                                                              str(event.timestamp)))
+    except asyncio.CancelledError:
+        _LOGGER.info('Shutting down hikvision alerts processing for config {}'.format(config_entry_id))
 
 
 class HikvisionAlertBinarySensor(BinarySensorEntity):
@@ -61,8 +188,10 @@ class HikvisionAlertBinarySensor(BinarySensorEntity):
         self._triggered: bool = None
         self._last_triggered: datetime.datetime = None
         self._recovery_period = alert_def.recovery_period
-        hass.bus.async_listen(const.EVENT_ALERT_NAME, self._on_event_received)
+        # hass.bus.async_listen(const.EVENT_ALERT_NAME, self._on_event_received)
+        self._dispose_signal_dispatcher: Callable = None
         async_track_time_interval(hass, self._check_if_state_outdated, datetime.timedelta(seconds=20))
+        _LOGGER.debug("Configured Hikvision Alert sensor {}".format(self.name))
 
     @property
     def unique_id(self):
@@ -76,13 +205,16 @@ class HikvisionAlertBinarySensor(BinarySensorEntity):
     def device_class(self):
         return DEVICE_CLASS_MOTION
 
-    async def _on_event_received(self, event: Event):
-        if not self._match_event(event):
+    async def _handle_alert_signal(self, data: Dict):
+        if not self._match_event(data):
             return
         self._triggered = True
-        self._last_triggered = event.time_fired
-        _LOGGER.debug('ON EVENT ')
+        self._last_triggered = data.get(const.EVENT_ALERT_DATA_TIMESTAMP)
+        _LOGGER.debug('Signal received')
         self.async_schedule_update_ha_state(True)
+
+    async def _on_event_received(self, event: Event):
+        await self._handle_alert_signal(event.data)
 
     @property
     def is_on(self):
@@ -102,13 +234,24 @@ class HikvisionAlertBinarySensor(BinarySensorEntity):
         """Disable polling."""
         return False
 
-    def _match_event(self, event: Event) -> bool:
-        return event.data.get(const.EVENT_ALERT_DATA_DEVICE) == self._alert_def.device_name \
-            and event.data.get(const.EVENT_ALERT_DATA_TYPE) == self._alert_def.type.value \
-            and event.data.get(const.EVENT_ALERT_DATA_CHANNEL) == str(self._alert_def.channel)
+    def _match_event(self, data: Dict) -> bool:
+        return data.get(const.EVENT_ALERT_DATA_DEVICE) == self._alert_def.related_device_id \
+            and data.get(const.EVENT_ALERT_DATA_TYPE) == self._alert_def.type.value \
+            and data.get(const.EVENT_ALERT_DATA_CHANNEL) == str(self._alert_def.channel)
 
     async def _check_if_state_outdated(self, arg):
         if self._last_triggered is not None \
                 and datetime.datetime.now(self._last_triggered.tzinfo) - self._last_triggered < self._recovery_period:
             self._triggered = False
             self.async_schedule_update_ha_state(True)
+
+    async def async_added_to_hass(self) -> None:
+        # Added to hass so need to register to dispatch signals coming from alerts queue.
+        self._dispose_signal_dispatcher = async_dispatcher_connect(self.hass, const.SIGNAL_ALERT_NAME,
+                                                                   self._on_event_received)
+
+    async def async_will_remove_from_hass(self):
+        _LOGGER.debug("Unloading Hikvision Alert sensor {}".format(self.name))
+        # Unregister signal dispatch listeners when being removed."""
+        if self._dispose_signal_dispatcher:
+            self._dispose_signal_dispatcher()

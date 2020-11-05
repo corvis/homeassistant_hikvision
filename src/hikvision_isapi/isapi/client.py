@@ -65,7 +65,7 @@ class ISAPIClient(object):
     INITIAL_RETRY_INTERVAL = datetime.timedelta(seconds=3)
     RETRY_INTERVAL_MULTIPLIER = 2
 
-    def __init__(self, base_url: str, username: str, password: str, ignore_ssl_errors = False) -> None:
+    def __init__(self, base_url: str, username: str, password: str, ignore_ssl_errors=False) -> None:
         self.base_url = base_url
         self.auth = None
         if username is not None or password is not None:
@@ -101,13 +101,13 @@ class ISAPIClient(object):
         try:
             if self._infinite_session is not None and not self._infinite_session.closed:
                 await self._infinite_session.close()
-        except:
-            pass
+        except Exception as e:
+            LOGGER.warning("Unable to close session" + str(e))
         try:
             if self._session is not None and not self._session.closed:
                 await self._session.close()
-        except:
-            pass
+        except Exception as e:
+            LOGGER.warning("Unable to regular close session" + str(e))
 
     def __build_url(self, path: str) -> str:
         return self.base_url + path
