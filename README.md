@@ -1,4 +1,10 @@
-# homeassistant_hikvision
+![Hikvision Logo](https://raw.githubusercontent.com/corvis/homeassistant_hikvision/master/media/logo.png)
+
+<h2 align="center">The Uncompromising Code Formatter</h2>
+
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+
+
 Native implementation of Hikvison cameras\NVRs integration which relies on Hikvision ISAPI
 
 This integration connects hikvision devices via __local__ http xml api (ISAPI). While there is a
