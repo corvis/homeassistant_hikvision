@@ -1,6 +1,6 @@
 ![Hikvision Logo](https://raw.githubusercontent.com/corvis/homeassistant_hikvision/main/media/logo.png)
 
-<h2 align="center">The Uncompromising Code Formatter</h2>
+<h2 align="center">Home Assistant - Hikvision</h2>
 
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
