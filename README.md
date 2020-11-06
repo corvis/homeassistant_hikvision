@@ -1,4 +1,4 @@
-![Hikvision Logo](https://raw.githubusercontent.com/corvis/homeassistant_hikvision/master/media/logo.png)
+![Hikvision Logo](https://raw.githubusercontent.com/corvis/homeassistant_hikvision/main/media/logo.png)
 
 <h2 align="center">The Uncompromising Code Formatter</h2>
 
