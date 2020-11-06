@@ -12,7 +12,7 @@ SETUP_MODULE=setup.py
 
 .DEFAULT_GOAL := pre_commit
 
-pre_commit: copyright flake8 check-format
+pre_commit: copyright format flake8
 
 help:
 	@echo "Usage:"

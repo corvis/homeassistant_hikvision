@@ -25,7 +25,7 @@ import asyncio
 import datetime
 import logging
 from asyncio import Queue
-from typing import Dict, List, NamedTuple, Optional, Callable, Any
+from typing import Dict, List, NamedTuple, Optional, Callable
 
 from homeassistant.components.binary_sensor import BinarySensorEntity, DEVICE_CLASS_MOTION
 from homeassistant.config_entries import ConfigEntry
