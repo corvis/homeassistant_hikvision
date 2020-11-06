@@ -1,7 +1,7 @@
 #    hass-hikvision-connector
 #    Copyright (C) 2020 Dmitry Berezovsky
 #    The MIT License (MIT)
-#    
+#
 #    Permission is hereby granted, free of charge, to any person obtaining
 #    a copy of this software and associated documentation files
 #    (the "Software"), to deal in the Software without restriction,
@@ -9,10 +9,10 @@
 #    publish, distribute, sublicense, and/or sell copies of the Software,
 #    and to permit persons to whom the Software is furnished to do so,
 #    subject to the following conditions:
-#    
+#
 #    The above copyright notice and this permission notice shall be
 #    included in all copies or substantial portions of the Software.
-#    
+#
 #    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
 #    EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
 #    MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
@@ -31,14 +31,14 @@ import aiohttp
 
 from .model import EventNotificationAlert, DeviceInfo, InputChannel
 
-LOGGER = logging.getLogger('Hikvision_ISAPIClient')
+LOGGER = logging.getLogger("Hikvision_ISAPIClient")
 
-ENDPOINT_EVENT_ALERTS_STREAM = '/ISAPI/Event/notification/alertStream'
+ENDPOINT_EVENT_ALERTS_STREAM = "/ISAPI/Event/notification/alertStream"
 # ENDPOINT_INPUTS_LIST = '/ISAPI/Streaming/channels'
-ENDPOINT_INPUTS_LIST = '/ISAPI/ContentMgmt/InputProxy/channels'
-ENDPOINT_DEVICE_INFO = '/ISAPI/System/deviceInfo'
+ENDPOINT_INPUTS_LIST = "/ISAPI/ContentMgmt/InputProxy/channels"
+ENDPOINT_DEVICE_INFO = "/ISAPI/System/deviceInfo"
 
-__all__ = ['ISAPIClient']
+__all__ = ["ISAPIClient"]
 
 
 class HikhisionStreamPartReader(aiohttp.BodyPartReader):
@@ -48,7 +48,7 @@ class HikhisionStreamPartReader(aiohttp.BodyPartReader):
         size: chunk size
         """
         if self._at_eof:
-            return b''
+            return b""
         if self._length:
             chunk = await self._read_chunk_from_length(size)
         else:
@@ -75,7 +75,7 @@ class ISAPIClient(object):
         self._session: aiohttp.ClientSession = None
         self._retry_interval = self.INITIAL_RETRY_INTERVAL
 
-    async def __aenter__(self) -> 'ISAPIClient':
+    async def __aenter__(self) -> "ISAPIClient":
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
@@ -141,9 +141,9 @@ class ISAPIClient(object):
             except (TimeoutError, Exception) as e:
                 retry_delay = self._retry_interval
                 self._retry_interval = self._retry_interval * self.RETRY_INTERVAL_MULTIPLIER
-                retry_notice = 'Reconnecting in {} seconds'.format(retry_delay.total_seconds())
+                retry_notice = "Reconnecting in {} seconds".format(retry_delay.total_seconds())
                 if isinstance(e, TimeoutError):
                     LOGGER.warning("Timeout while reading data from hikvision alert stream. " + retry_notice)
                 else:
-                    LOGGER.exception('Unknown error while reading event stream. ' + retry_notice)
+                    LOGGER.exception("Unknown error while reading event stream. " + retry_notice)
                 await asyncio.sleep(retry_delay.total_seconds())

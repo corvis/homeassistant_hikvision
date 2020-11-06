@@ -1,7 +1,7 @@
 #    hass-hikvision-connector
 #    Copyright (C) 2020 Dmitry Berezovsky
 #    The MIT License (MIT)
-#    
+#
 #    Permission is hereby granted, free of charge, to any person obtaining
 #    a copy of this software and associated documentation files
 #    (the "Software"), to deal in the Software without restriction,
@@ -9,10 +9,10 @@
 #    publish, distribute, sublicense, and/or sell copies of the Software,
 #    and to permit persons to whom the Software is furnished to do so,
 #    subject to the following conditions:
-#    
+#
 #    The above copyright notice and this permission notice shall be
 #    included in all copies or substantial portions of the Software.
-#    
+#
 #    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
 #    EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
 #    MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
@@ -62,24 +62,24 @@ class BaseHikvisionEntity(object):
 
     def __repr__(self):
         if len(self.TO_STRING_FIELDS) == 0:
-            props = 'obj=' + hex(id(self))
+            props = "obj=" + hex(id(self))
         else:
-            props = ', '.join(['{}={}'.format(f, self._from_field(f)) for f in self.TO_STRING_FIELDS])
-        return '{}({})'.format(self.__class__.__name__, props)
+            props = ", ".join(["{}={}".format(f, self._from_field(f)) for f in self.TO_STRING_FIELDS])
+        return "{}({})".format(self.__class__.__name__, props)
 
 
 class DeviceInfo(BaseHikvisionEntity):
-    XML_ROOT_ELEMENT = 'DeviceInfo'
+    XML_ROOT_ELEMENT = "DeviceInfo"
 
-    DEVICE_TYPE_NVR = 'NVR'
+    DEVICE_TYPE_NVR = "NVR"
 
-    FIELD_DEVICE_NAME = 'deviceName'
-    FIELD_DEVICE_ID = 'deviceID'
-    FIELD_MODEL = 'model'
-    FIELD_SERIAL_NUMBER = 'serialNumber'
-    FIELD_FIRMWARE_VERSION = 'firmwareVersion'
-    FIELD_FIRMWARE_RELEASE_DATE = 'firmwareReleaseDate'
-    FIELD_DEVICE_TYPE = 'deviceType'
+    FIELD_DEVICE_NAME = "deviceName"
+    FIELD_DEVICE_ID = "deviceID"
+    FIELD_MODEL = "model"
+    FIELD_SERIAL_NUMBER = "serialNumber"
+    FIELD_FIRMWARE_VERSION = "firmwareVersion"
+    FIELD_FIRMWARE_RELEASE_DATE = "firmwareReleaseDate"
+    FIELD_DEVICE_TYPE = "deviceType"
 
     @property
     def device_name(self) -> str:
@@ -126,11 +126,11 @@ class DeviceInfo(BaseHikvisionEntity):
 
 
 class InputChannel(BaseHikvisionEntity):
-    XML_ROOT_LIST_ELEMENT = 'InputProxyChannelList'
-    XML_ROOT_ELEMENT = 'InputProxyChannel'
+    XML_ROOT_LIST_ELEMENT = "InputProxyChannelList"
+    XML_ROOT_ELEMENT = "InputProxyChannel"
 
-    FIELD_ID = 'id'
-    FIELD_NAME = 'name'
+    FIELD_ID = "id"
+    FIELD_NAME = "name"
 
     TO_STRING_FIELDS = (FIELD_ID, FIELD_NAME)
 
@@ -152,14 +152,14 @@ class InputChannel(BaseHikvisionEntity):
 
 
 class EventNotificationAlert(BaseHikvisionEntity):
-    XML_ROOT_ELEMENT = 'EventNotificationAlert'
+    XML_ROOT_ELEMENT = "EventNotificationAlert"
 
-    FIELD_EVENT_TYPE = 'eventType'
-    FIELD_EVENT_DESCRIPTION = 'eventDescription'
-    FIELD_CHANNEL_NAME = 'channelName'
-    FIELD_CHANNEL_ID = 'channelID'
-    FIELD_EVENT_STATE = 'eventState'
-    FIELD_EVENT_TIME = 'dateTime'
+    FIELD_EVENT_TYPE = "eventType"
+    FIELD_EVENT_DESCRIPTION = "eventDescription"
+    FIELD_CHANNEL_NAME = "channelName"
+    FIELD_CHANNEL_ID = "channelID"
+    FIELD_EVENT_STATE = "eventState"
+    FIELD_EVENT_TIME = "dateTime"
 
     @property
     def type(self) -> str:

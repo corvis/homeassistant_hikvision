@@ -12,7 +12,7 @@ SETUP_MODULE=setup.py
 
 .DEFAULT_GOAL := pre_commit
 
-pre_commit: copyright flake8
+pre_commit: copyright flake8 check-format
 
 help:
 	@echo "Usage:"
@@ -67,3 +67,19 @@ build: copyright flake8 clean
 
 clean:
 	rm -rf src/build dist/* *.egg-info src/*.egg-info .pytest_cache
+
+format:
+	@( \
+       if [ -z $(SKIP_VENV) ]; then source $(VIRTUAL_ENV_PATH)/bin/activate; fi; \
+       echo "Runing Black code formater..."; \
+       black ./src; \
+       echo "DONE: Black"; \
+    )
+
+check-format:
+	@( \
+       if [ -z $(SKIP_VENV) ]; then source $(VIRTUAL_ENV_PATH)/bin/activate; fi; \
+       echo "Runing Black code formater..."; \
+       black --check ./src; \
+       echo "DONE: Black"; \
+    )
