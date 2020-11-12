@@ -56,9 +56,9 @@ In order to setup developer's environment it's recommended to do the following:
 4. Create a symlink to bind the main component folder to the `hass-dev/custom_components`
 
 ## Credits
-Dmitry Berezovsky
+* Dmitry Berezovsky
 
 ## Disclaimer
-This module is licensed under GPL v3. This means you are free to use it even in commercial projects.
+This module is licensed under MIT. This means you are free to use it even in commercial projects.
 
-The GPL license clearly explains that there is no warranty for this free software. Please see the included LICENSE file for details.
+The MIT license clearly explains that there is no warranty for this free software. Please see the included LICENSE file for details.
