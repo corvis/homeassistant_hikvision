@@ -2,6 +2,7 @@
   "domain": "hikvision_isapi",
   "name": "Hikvision ISAPI",
   "documentation": "",
+  "version": "0.2.0",
   "dependencies": [],
   "codeowners": [
     "@corvis"

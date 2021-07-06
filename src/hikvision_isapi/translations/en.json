@@ -23,16 +23,15 @@
     },
     "options": {
         "error": {
-            "unable_to_connect": "Unable to connect to the remote device",
-            "invalid_period": "Invalid duration. Try 00:02:00"
+            "unable_to_connect": "Unable to connect to the remote device"
         },
         "step": {
             "init": {
                 "data": {
-                    "edit_key": "Page"
+                    "devices": "Device"
                 },
-                "description": "Choose settings page to edit",
-                "title": "Hikvision Integration Options"
+                "description": "Choose prana device from the list below or add a new one",
+                "title": "Prana Hub Options"
             },
             "common_settings": {
                 "data": {
